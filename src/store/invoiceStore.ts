@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return typeof error === 'string' ? error : 'An unknown error occurred';
+}
+
 export interface InvoiceItem {
   description: string;
   quantity: number;
@@ -10,7 +15,7 @@ export interface Invoice {
   id: string;
   client: string;
   amount: number;
-  status: 'draft' | 'pending' | 'paid' | 'overdue' | 'processing' | 'failed';
+  status: 'draft' | 'pending' | 'pending_payment' | 'paid' | 'overdue' | 'processing' | 'failed';
   date: string;
   dueDate: string;
   items: InvoiceItem[];
@@ -48,7 +53,7 @@ export const useInvoiceStore = create<InvoiceState>((set, get) => ({
       const data = await response.json();
       set({ invoices: data, loading: false });
     } catch (error) {
-      set({ error: error.message, loading: false });
+      set({ error: getErrorMessage(error), loading: false });
     }
   },
 
@@ -76,8 +81,10 @@ export const useInvoiceStore = create<InvoiceState>((set, get) => ({
       }));
       return newInvoice;
     } catch (error) {
-      set({ error: error.message, loading: false });
-      throw error;
+      const message = getErrorMessage(error);
+      set({ error: message, loading: false });
+      if (error instanceof Error) throw error;
+      throw new Error(message);
     }
   },
 
@@ -104,8 +111,10 @@ export const useInvoiceStore = create<InvoiceState>((set, get) => ({
         loading: false
       }));
     } catch (error) {
-      set({ error: error.message, loading: false });
-      throw error;
+      const message = getErrorMessage(error);
+      set({ error: message, loading: false });
+      if (error instanceof Error) throw error;
+      throw new Error(message);
     }
   },
 
@@ -122,8 +131,10 @@ export const useInvoiceStore = create<InvoiceState>((set, get) => ({
         loading: false
       }));
     } catch (error) {
-      set({ error: error.message, loading: false });
-      throw error;
+      const message = getErrorMessage(error);
+      set({ error: message, loading: false });
+      if (error instanceof Error) throw error;
+      throw new Error(message);
     }
   },
 

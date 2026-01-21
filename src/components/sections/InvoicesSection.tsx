@@ -8,12 +8,12 @@ import {
   FiClock, 
   FiAlertTriangle, 
   FiSearch, 
-  FiFilter,
   FiPlus,
+  FiEdit2,
+  FiTrash2,
   FiChevronLeft,
   FiChevronRight
 } from 'react-icons/fi';
-import Link from 'next/link';
 
 type InvoiceStatus = 'Paid' | 'Pending' | 'Overdue';
 
@@ -113,8 +113,14 @@ const formatDate = (dateString: string) => {
 };
 
 export default function InvoicesSection() {
+  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isNewInvoiceModalOpen, setIsNewInvoiceModalOpen] = useState(false);
+  const [invoiceBeingEdited, setInvoiceBeingEdited] = useState<Invoice | null>(null);
+  const [invoiceBeingDeleted, setInvoiceBeingDeleted] = useState<Invoice | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isSavingInvoice, setIsSavingInvoice] = useState(false);
+  const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'card'>('mpesa');
@@ -133,7 +139,7 @@ export default function InvoicesSection() {
   const itemsPerPage = 10;
 
   const filteredInvoices = useMemo(() => {
-    return mockInvoices.filter(invoice => {
+    return invoices.filter(invoice => {
       const matchesSearch = 
         invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         invoice.client.toLowerCase().includes(searchTerm.toLowerCase());
@@ -151,7 +157,7 @@ export default function InvoicesSection() {
       
       return sortOrder === 'desc' ? -comparison : comparison;
     });
-  }, [searchTerm, statusFilter, sortBy]);
+  }, [invoices, searchTerm, statusFilter, sortBy]);
 
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   const paginatedInvoices = filteredInvoices.slice(
@@ -190,6 +196,59 @@ export default function InvoicesSection() {
     setPaymentSuccess(false);
   };
 
+  const calculateInvoiceTotal = (items: Invoice['items']) => {
+    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const tax = subtotal * 0.16;
+    return Number((subtotal + tax).toFixed(2));
+  };
+
+  const generateInvoiceId = (existing: Invoice[]) => {
+    const maxNumber = existing.reduce((max, inv) => {
+      const match = /^QP-(\d+)$/.exec(inv.id);
+      if (!match) return max;
+      return Math.max(max, Number(match[1]));
+    }, 2044);
+    return `QP-${maxNumber + 1}`;
+  };
+
+  const openCreateInvoiceModal = () => {
+    setInvoiceBeingEdited(null);
+    setIsNewInvoiceModalOpen(true);
+  };
+
+  const openEditInvoiceModal = (invoice: Invoice) => {
+    setInvoiceBeingEdited(invoice);
+    setIsNewInvoiceModalOpen(true);
+  };
+
+  const openDeleteInvoiceModal = (invoice: Invoice) => {
+    setInvoiceBeingDeleted(invoice);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const closeDeleteInvoiceModal = () => {
+    setIsDeleteConfirmOpen(false);
+    setInvoiceBeingDeleted(null);
+  };
+
+  const confirmDeleteInvoice = async () => {
+    if (!invoiceBeingDeleted) return;
+    setIsDeletingInvoice(true);
+    try {
+      setInvoices(prev => prev.filter(inv => inv.id !== invoiceBeingDeleted.id));
+      if (selectedInvoice?.id === invoiceBeingDeleted.id) {
+        setSelectedInvoice(null);
+      }
+      if (paymentInvoice?.id === invoiceBeingDeleted.id) {
+        closePaymentModal();
+      }
+      setCurrentPage(1);
+      closeDeleteInvoiceModal();
+    } finally {
+      setIsDeletingInvoice(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -199,7 +258,7 @@ export default function InvoicesSection() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage your invoices and payments</p>
         </div>
         <button
-          onClick={() => setIsNewInvoiceModalOpen(true)}
+          onClick={openCreateInvoiceModal}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <FiPlus className="mr-2 h-4 w-4" />
@@ -353,9 +412,26 @@ export default function InvoicesSection() {
                         </button>
                         <button
                           onClick={() => setSelectedInvoice(invoice)}
+                          disabled={isSavingInvoice || isDeletingInvoice}
                           className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                           View
+                        </button>
+                        <button
+                          onClick={() => openEditInvoiceModal(invoice)}
+                          disabled={isSavingInvoice || isDeletingInvoice}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FiEdit2 className="mr-1 h-3 w-3" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => openDeleteInvoiceModal(invoice)}
+                          disabled={isSavingInvoice || isDeletingInvoice}
+                          className="inline-flex items-center px-3 py-1.5 border border-red-300 shadow-sm text-xs font-medium rounded text-red-700 bg-white dark:bg-gray-700 dark:border-red-600 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FiTrash2 className="mr-1 h-3 w-3" />
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -557,6 +633,24 @@ export default function InvoicesSection() {
                 >
                   Close
                 </button>
+                <button
+                  type="button"
+                  onClick={() => openEditInvoiceModal(selectedInvoice)}
+                  disabled={isSavingInvoice || isDeletingInvoice}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded text-gray-700 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FiEdit2 className="mr-2 h-4 w-4" />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openDeleteInvoiceModal(selectedInvoice)}
+                  disabled={isSavingInvoice || isDeletingInvoice}
+                  className="inline-flex items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded text-red-700 bg-white dark:bg-gray-700 dark:border-red-600 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FiTrash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </button>
                 {selectedInvoice.status !== 'Paid' && (
                   <button
                     type="button"
@@ -574,14 +668,139 @@ export default function InvoicesSection() {
       )}
 
       <NewInvoiceModal
+        key={`${isNewInvoiceModalOpen ? 'open' : 'closed'}-${invoiceBeingEdited?.id ?? 'new'}`}
         isOpen={isNewInvoiceModalOpen}
-        onClose={() => setIsNewInvoiceModalOpen(false)}
-        onSave={(invoiceData) => {
-          console.log('Saving invoice:', invoiceData);
-          alert('Invoice created successfully!');
+        onClose={() => {
           setIsNewInvoiceModalOpen(false);
+          setInvoiceBeingEdited(null);
+        }}
+        initialData={
+          invoiceBeingEdited
+            ? {
+                clientName: invoiceBeingEdited.client,
+                items: invoiceBeingEdited.items,
+                dueDate: invoiceBeingEdited.dueDate,
+                notes: '',
+              }
+            : undefined
+        }
+        onSave={async (invoiceData) => {
+          setIsSavingInvoice(true);
+          try {
+            const nextItems = invoiceData.items;
+            const nextAmount = calculateInvoiceTotal(nextItems);
+
+            if (invoiceBeingEdited) {
+              setInvoices(prev =>
+                prev.map(inv =>
+                  inv.id === invoiceBeingEdited.id
+                    ? {
+                        ...inv,
+                        client: invoiceData.clientName,
+                        items: nextItems,
+                        dueDate: invoiceData.dueDate,
+                        amount: nextAmount,
+                      }
+                    : inv
+                )
+              );
+
+              if (selectedInvoice?.id === invoiceBeingEdited.id) {
+                setSelectedInvoice(prev =>
+                  prev
+                    ? {
+                        ...prev,
+                        client: invoiceData.clientName,
+                        items: nextItems,
+                        dueDate: invoiceData.dueDate,
+                        amount: nextAmount,
+                      }
+                    : prev
+                );
+              }
+
+              if (paymentInvoice?.id === invoiceBeingEdited.id) {
+                setPaymentInvoice(prev =>
+                  prev
+                    ? {
+                        ...prev,
+                        client: invoiceData.clientName,
+                        items: nextItems,
+                        dueDate: invoiceData.dueDate,
+                        amount: nextAmount,
+                      }
+                    : prev
+                );
+              }
+            } else {
+              const today = new Date().toISOString().split('T')[0];
+              const newInvoice: Invoice = {
+                id: generateInvoiceId(invoices),
+                client: invoiceData.clientName,
+                items: nextItems,
+                amount: nextAmount,
+                status: 'Pending',
+                date: today,
+                dueDate: invoiceData.dueDate,
+              };
+              setInvoices(prev => [newInvoice, ...prev]);
+              setCurrentPage(1);
+            }
+
+            setIsNewInvoiceModalOpen(false);
+            setInvoiceBeingEdited(null);
+          } finally {
+            setIsSavingInvoice(false);
+          }
         }}
       />
+
+      {isDeleteConfirmOpen && invoiceBeingDeleted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Delete invoice</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {invoiceBeingDeleted.id} • {invoiceBeingDeleted.client}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeDeleteInvoiceModal}
+                disabled={isDeletingInvoice}
+                className="rounded-md p-2 text-gray-500 hover:text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="sr-only">Close</span>
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
+              This action cannot be undone.
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeDeleteInvoiceModal}
+                disabled={isDeletingInvoice}
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteInvoice}
+                disabled={isDeletingInvoice}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isPaymentModalOpen && paymentInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
