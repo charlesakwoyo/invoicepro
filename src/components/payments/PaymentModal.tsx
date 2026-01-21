@@ -1,6 +1,7 @@
+// src/components/payments/PaymentModal.tsx
 "use client";
 
-import { useState } from 'react';
+import { JSX, useState } from 'react';
 import { FiX, FiCreditCard, FiDollarSign, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,7 +19,19 @@ interface PaymentModalProps {
   invoiceNumber: string;
 }
 
-const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: PaymentModalProps) => {
+const PaymentModal: React.FC<PaymentModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  invoiceAmount, 
+  invoiceNumber 
+}) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+    }).format(amount);
+  };
+
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [paymentStep, setPaymentStep] = useState<'method' | 'details' | 'processing' | 'success' | 'error'>('method');
   const [cardDetails, setCardDetails] = useState({
@@ -47,7 +60,6 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
   const handleCardInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Format card number with spaces after every 4 digits
     if (name === 'number') {
       const formattedValue = value
         .replace(/\s+/g, '')
@@ -61,7 +73,6 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
       return;
     }
 
-    // Format expiry date with slash
     if (name === 'expiry') {
       const formattedValue = value
         .replace(/\D/g, '')
@@ -81,10 +92,7 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
   };
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Format phone number (e.g., 254 7XX XXX XXX)
     const value = e.target.value.replace(/\D/g, '').substr(0, 12);
-    
-    // Auto-format for Kenyan numbers
     let formattedValue = value;
     if (value.startsWith('0')) {
       formattedValue = `254${value.substring(1)}`;
@@ -93,7 +101,6 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
     } else if (value.startsWith('254')) {
       formattedValue = value;
     }
-    
     setPhoneNumber(formattedValue);
   };
 
@@ -102,18 +109,13 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
     setPaymentStep('processing');
     
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Randomly determine success/failure for demo
       const isSuccess = Math.random() > 0.2;
       
       if (isSuccess) {
         setPaymentStep('success');
-        // Reset form after successful payment
         setTimeout(() => {
           onClose();
-          // Reset state after animation
           setTimeout(() => {
             setPaymentStep('method');
             setSelectedMethod(null);
@@ -211,7 +213,7 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
           name="name"
           value={cardDetails.name}
           onChange={handleCardInputChange}
-          placeholder="John Doe"
+          placeholder="Cardholder Name"
           className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         />
@@ -263,7 +265,7 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
           type="submit"
           className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
         >
-          <span>Pay ${invoiceAmount.toFixed(2)}</span>
+          <span>Pay {formatCurrency(invoiceAmount)}</span>
         </button>
       </div>
     </form>
@@ -311,7 +313,7 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
               Payment Amount
             </h4>
             <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-              <p>${invoiceAmount.toFixed(2)}</p>
+              <p>{formatCurrency(invoiceAmount)}</p>
             </div>
           </div>
         </div>
@@ -358,7 +360,7 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
         Payment Successful!
       </h3>
       <p className="text-slate-500 dark:text-slate-400 mb-6">
-        Your payment of ${invoiceAmount.toFixed(2)} has been processed successfully.
+        Your payment of {formatCurrency(invoiceAmount)} has been processed successfully.
       </p>
       <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 text-sm text-slate-600 dark:text-slate-300 text-left">
         <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700">
@@ -367,7 +369,7 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
         </div>
         <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700">
           <span>Amount Paid:</span>
-          <span className="font-medium">${invoiceAmount.toFixed(2)}</span>
+          <span className="font-medium">{formatCurrency(invoiceAmount)}</span>
         </div>
         <div className="flex justify-between py-2">
           <span>Date:</span>
@@ -396,16 +398,16 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
       </p>
       <div className="flex justify-center space-x-3">
         <button
-          onClick={() => setPaymentStep('method')}
+          onClick={onClose}
           className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors duration-200"
         >
-          Try Again
+          Cancel
         </button>
         <button
-          onClick={onClose}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+          onClick={() => setPaymentStep('method')}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
         >
-          Close
+          Try Again
         </button>
       </div>
     </div>
@@ -416,7 +418,10 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4 text-center">
-        <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+        <div 
+          className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm transition-opacity" 
+          onClick={onClose}
+        ></div>
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -437,31 +442,12 @@ const PaymentModal = ({ isOpen, onClose, invoiceAmount, invoiceNumber }: Payment
           </div>
 
           <div className="mt-2">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              Pay Invoice #{invoiceNumber}
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-              Amount Due: <span className="font-semibold text-slate-900 dark:text-white">${invoiceAmount.toFixed(2)}</span>
-            </p>
-
-            <div className="mt-4">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={paymentStep}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {paymentStep === 'method' && renderPaymentMethodStep()}
-                  {paymentStep === 'details' && selectedMethod === 'card' && renderCardPaymentForm()}
-                  {paymentStep === 'details' && selectedMethod === 'mpesa' && renderMpesaPaymentForm()}
-                  {paymentStep === 'processing' && renderProcessingStep()}
-                  {paymentStep === 'success' && renderSuccessStep()}
-                  {paymentStep === 'error' && renderErrorStep()}
-                </motion.div>
-              </AnimatePresence>
-            </div>
+            {paymentStep === 'method' && renderPaymentMethodStep()}
+            {paymentStep === 'details' && selectedMethod === 'card' && renderCardPaymentForm()}
+            {paymentStep === 'details' && selectedMethod === 'mpesa' && renderMpesaPaymentForm()}
+            {paymentStep === 'processing' && renderProcessingStep()}
+            {paymentStep === 'success' && renderSuccessStep()}
+            {paymentStep === 'error' && renderErrorStep()}
           </div>
         </motion.div>
       </div>

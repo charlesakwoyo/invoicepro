@@ -13,8 +13,8 @@ const handler = NextAuth({
         // Mock user - in a real app, you would check against a database
         const mockUser = {
           id: "1",
-          name: "Demo User",
-          email: "demo@example.com",
+          name: "Charles Akwoyo",
+          email: "charles@gmail.com",
           password: "password123" // In a real app, never store passwords in plain text
         };
 

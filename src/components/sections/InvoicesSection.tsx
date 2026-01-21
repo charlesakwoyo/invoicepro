@@ -1,6 +1,6 @@
 // src/components/sections/InvoicesSection.tsx
 "use client";
-
+import NewInvoiceModal from '../invoices/NewInvoiceModel';
 import { useState, useMemo } from 'react';
 import { 
   FiDollarSign, 
@@ -98,9 +98,9 @@ const statusStyles = {
 };
 
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-KE', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'KES',
   }).format(amount);
 };
 
@@ -114,6 +114,18 @@ const formatDate = (dateString: string) => {
 
 export default function InvoicesSection() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isNewInvoiceModalOpen, setIsNewInvoiceModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'card'>('mpesa');
+  const [paymentFields, setPaymentFields] = useState({
+    phone: '',
+    cardName: '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+  });
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<typeof statuses[number]>('All');
   const [sortBy, setSortBy] = useState('date-desc');
@@ -152,45 +164,30 @@ export default function InvoicesSection() {
     window.scrollTo(0, 0);
   };
 
-  const handlePayNow = async (invoice: Invoice) => {
+  const handlePayNow = (invoice: Invoice) => {
     if (invoice.status === 'Paid') return;
-    
-    try {
-      // In a real app, you would:
-      // 1. Get the user's phone number (from profile or input)
-      const phoneNumber = '254712345678'; // Replace with actual user's phone
-      
-      // 2. Call your STK push API endpoint
-      const response = await fetch('/api/stk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: phoneNumber,
-          amount: invoice.amount,
-          account: `INV-${invoice.id}`,
-        }),
-      });
+    setPaymentInvoice(invoice);
+    setPaymentMethod('mpesa');
+    setPaymentFields({
+      phone: '',
+      cardName: '',
+      cardNumber: '',
+      cardExpiry: '',
+      cardCvv: '',
+    });
+    setPaymentSuccess(false);
+    setIsPaymentModalOpen(true);
+  };
 
-      const data = await response.json();
+  const handlePaymentSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    setPaymentSuccess(true);
+  };
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initiate payment');
-      }
-
-      // In a real app, you would:
-      // 1. Update the invoice status in your database via API
-      // 2. Listen for the payment confirmation webhook
-      // 3. Update the UI when the payment is confirmed
-
-      // For demo, we'll simulate a successful payment
-      alert(`Payment request sent for invoice ${invoice.id}. Please check your phone to complete the payment.`);
-
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert('Failed to initiate payment. Please try again.');
-    }
+  const closePaymentModal = () => {
+    setIsPaymentModalOpen(false);
+    setPaymentInvoice(null);
+    setPaymentSuccess(false);
   };
 
   return (
@@ -201,13 +198,13 @@ export default function InvoicesSection() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Invoices</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage your invoices and payments</p>
         </div>
-        <Link 
-          href="/invoices/new" 
+        <button
+          onClick={() => setIsNewInvoiceModalOpen(true)}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <FiPlus className="mr-2 h-4 w-4" />
           New Invoice
-        </Link>
+        </button>
       </div>
 
       {/* Filters */}
@@ -572,6 +569,174 @@ export default function InvoicesSection() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      <NewInvoiceModal
+        isOpen={isNewInvoiceModalOpen}
+        onClose={() => setIsNewInvoiceModalOpen(false)}
+        onSave={(invoiceData) => {
+          console.log('Saving invoice:', invoiceData);
+          alert('Invoice created successfully!');
+          setIsNewInvoiceModalOpen(false);
+        }}
+      />
+
+      {isPaymentModalOpen && paymentInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Pay Invoice</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {paymentInvoice.id} • {formatCurrency(paymentInvoice.amount)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePaymentModal}
+                className="rounded-md p-2 text-gray-500 hover:text-gray-700 dark:text-gray-300"
+              >
+                <span className="sr-only">Close</span>
+                ✕
+              </button>
+            </div>
+
+            {paymentSuccess ? (
+              <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+                <h3 className="text-sm font-semibold">Payment successful</h3>
+                <p className="text-sm">Your mock payment was processed successfully.</p>
+                <button
+                  type="button"
+                  onClick={closePaymentModal}
+                  className="mt-4 inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePaymentSubmit} className="mt-6 space-y-4">
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('mpesa')}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ${
+                      paymentMethod === 'mpesa'
+                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 text-gray-600 hover:border-blue-200'
+                    }`}
+                  >
+                    Mpesa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('card')}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ${
+                      paymentMethod === 'card'
+                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 text-gray-600 hover:border-blue-200'
+                    }`}
+                  >
+                    Card
+                  </button>
+                </div>
+
+                {paymentMethod === 'mpesa' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Mpesa Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={paymentFields.phone}
+                      onChange={(e) =>
+                        setPaymentFields((prev) => ({ ...prev, phone: e.target.value }))
+                      }
+                      placeholder="2547XXXXXXXX"
+                      required
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Name on Card
+                      </label>
+                      <input
+                        value={paymentFields.cardName}
+                        onChange={(e) =>
+                          setPaymentFields((prev) => ({ ...prev, cardName: e.target.value }))
+                        }
+                        required
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Card Number
+                      </label>
+                      <input
+                        value={paymentFields.cardNumber}
+                        onChange={(e) =>
+                          setPaymentFields((prev) => ({ ...prev, cardNumber: e.target.value }))
+                        }
+                        placeholder="4242 4242 4242 4242"
+                        required
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                          Expiry
+                        </label>
+                        <input
+                          value={paymentFields.cardExpiry}
+                          onChange={(e) =>
+                            setPaymentFields((prev) => ({ ...prev, cardExpiry: e.target.value }))
+                          }
+                          placeholder="MM/YY"
+                          required
+                          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                          CVV
+                        </label>
+                        <input
+                          value={paymentFields.cardCvv}
+                          onChange={(e) =>
+                            setPaymentFields((prev) => ({ ...prev, cardCvv: e.target.value }))
+                          }
+                          placeholder="123"
+                          required
+                          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closePaymentModal}
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    Pay Now
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

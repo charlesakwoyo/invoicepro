@@ -50,8 +50,8 @@ interface DashboardState {
 
 // Mock user data
 const initialUser: UserProfile = {
-  name: 'John Doe',
-  email: 'john@example.com',
+  name: 'Charles Akwoyo',
+  email: 'charles@gmail.com',
   avatar: '',
 };
 
@@ -67,7 +67,7 @@ const mockNotifications: Notification[] = [
   {
     id: '2',
     title: 'Payment Received',
-    message: 'Payment of $1,200 received from John Smith',
+    message: 'Payment of KSh 1,200 received from John Smith',
     read: false,
     timestamp: new Date(Date.now() - 3600000), // 1 hour ago
   },

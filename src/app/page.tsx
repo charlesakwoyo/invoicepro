@@ -82,7 +82,7 @@ export default function PublicHomePage() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Total</span>
-                                    <span className="font-semibold text-blue-600">$1,240.00</span>
+                                    <span className="font-semibold text-blue-600">KSh 1,240.00</span>
                                 </div>
                             </div>
                             <button className="w-full mt-6 bg-blue-600 text-white py-2 rounded-lg">

@@ -14,9 +14,9 @@ export default function PaymentsTable() {
         <tbody>
           <tr className="border-t">
             <td className="px-4 py-3">INV-001</td>
-            <td className="px-4 py-3">John Doe</td>
+            <td className="px-4 py-3">Charles Akwoyo</td>
             <td className="px-4 py-3">Jan 12</td>
-            <td className="px-4 py-3">$450</td>
+            <td className="px-4 py-3">KSh 450</td>
             <td className="px-4 py-3">
               <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">
                 Paid

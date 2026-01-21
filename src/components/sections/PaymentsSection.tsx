@@ -8,21 +8,21 @@ export default function PaymentsSection() {
   const stats = [
     { 
       name: 'Total Revenue', 
-      value: '$24,780', 
+      value: 'KSh 24,780', 
       change: '+12.5%', 
       changeType: 'increase',
       icon: FiDollarSign 
     },
     { 
       name: 'Pending Payments', 
-      value: '$8,240', 
+      value: 'KSh 8,240', 
       change: '-2.3%', 
       changeType: 'decrease',
       icon: FiCalendar 
     },
     { 
       name: 'Avg. Transaction', 
-      value: '$1,240', 
+      value: 'KSh 1,240', 
       change: '+5.7%', 
       changeType: 'increase',
       icon: FiTrendingUp 
