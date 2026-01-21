@@ -20,9 +20,6 @@ interface User {
   avatar?: string;
 }
 
-// Dynamically import InvoicePanel
-const InvoicePanel = dynamic(() => import('./InvoicePanel'), { ssr: false });
-
 // Map pages
 const pageComponents: Record<string, React.ComponentType> = {
   Home: HomeSection,
@@ -81,8 +78,8 @@ export default function AppShell() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col dark:bg-gray-900">
       <Header />
-      <div className="flex flex-1 pt-16">
-        <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-sm transform transition-transform duration-300 ease-in-out pt-16 ${
+      <div className="flex flex-1">
+        <aside className={`fixed top-16 bottom-0 left-0 z-30 w-64 bg-white shadow-sm transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0`}>
           <div className="h-full overflow-y-auto py-4">
@@ -97,11 +94,6 @@ export default function AppShell() {
               {/* Primary content */}
               <div className="flex-1 overflow-y-auto p-6">
                 {renderContent()}
-              </div>
-              
-              {/* Side panel - Only on large screens */}
-              <div className="hidden xl:block w-80 border-l border-gray-100 bg-white overflow-y-auto">
-                <InvoicePanel />
               </div>
             </div>
           </main>
